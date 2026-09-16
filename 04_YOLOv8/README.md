@@ -1,3 +1,117 @@
+# YOLOv8 기반 제조 데이터 객체 탐지
+
+신발 공장 검사대 CCTV 영상에서 신발(`shoes`)과 도장(`stamp`)을 탐지하는 YOLOv8n
+모델을 학습하고, 검증 세트와 테스트 세트에서 성능을 분석한 프로젝트입니다.
+
+> 모두의연구소 AX Bootcamp · 제조업 이상탐지 트랙 · 프로젝트 노드 1
+
+## 데이터
+
+| 항목 | 내용 |
+| --- | --- |
+| 출처 | Roboflow Universe `stamp` v10 (CC BY 4.0) |
+| 장면 | 신발 공장 검사대(`PG03-LASTING-QC`)를 위에서 찍은 CCTV, 영상 1개에서 프레임 추출 |
+| 클래스 | `shoes` (신발골과 완성 신발), `stamp` (작업대 가장자리의 도장) |
+| 분할 | train 1100 / valid 273 / test 193 |
+| 해상도 | 416×416 |
+
+## 학습 설정
+
+| 항목 | 값 |
+| --- | --- |
+| 모델 | yolov8n.pt (COCO 사전학습) |
+| epoch | 20 |
+| imgsz | 640 |
+| batch | 16 |
+| 증강 | ultralytics 기본값 (mosaic, fliplr 0.5, scale 0.5, close_mosaic 10) |
+| GPU | Colab T4 |
+
+## 결과
+
+### 테스트 1: 검증 세트 (best epoch 17)
+
+| 지표 | 값 |
+| --- | --- |
+| mAP50 | 0.984 |
+| mAP50-95 | 0.626 |
+| Precision | 0.944 |
+| Recall | 0.940 |
+
+| 클래스 | 정답 수 | 놓침 | 잘못 잡음 |
+| --- | --- | --- | --- |
+| shoes | 408 | 72 (18%) | 20 |
+| stamp | 544 | 0 | 13 |
+
+### 테스트 2: 테스트 세트
+
+| 클래스 | Recall | mAP50 | mAP50-95 |
+| --- | --- | --- | --- |
+| all | 0.931 | 0.987 | 0.628 |
+| shoes | 0.867 | 0.979 | **0.707** |
+| stamp | 0.995 | 0.995 | **0.550** |
+
+## 주요 발견
+
+1. **검증 점수가 부풀려져 있음.** 영상 하나에서 프레임을 무작위로 나눠서, 검증
+   프레임의 76%가 학습 프레임과 2프레임(0.07초) 이내에 있다. `src/check_leakage.py`로
+   확인 가능.
+2. **stamp 100% 재현율은 위치 암기.** 카메라와 작업대가 고정이라 객체가 대여섯
+   좌표에만 나타난다 (`results/valid/labels.jpg` 히트맵).
+3. **찾기와 정확히 그리기가 반대.** stamp는 찾기는 99.5%인데 엄격한 박스 기준
+   mAP50-95는 0.55. 한 변 29px라 몇 픽셀 오차가 IoU를 크게 떨어뜨린다. shoes는
+   반대로 찾기는 87%인데 박스는 0.71로 더 정확하다.
+4. **shoes 미검의 세 패턴.** 화면 아래 가장자리에 잘린 것, 손에 가려진 것, 라벨
+   오류(stamp에 shoes 라벨). F1 곡선상 놓친 것들은 신뢰도 0.1 미만으로 잡혀 있다.
+5. **val `box_loss`와 `dfl_loss`가 평평함.** 분류(`cls`)는 일반화되지만 위치
+   정밀도는 20 epoch 내내 개선되지 않는다. 라벨 박스가 프레임마다 흔들리는 것이
+   원인으로 보인다.
+
+자세한 근거는 [`analysis.md`](analysis.md)에 있습니다.
+
+## 구조
+
+```
+.
+├── README.md
+├── analysis.md            분석 상세 (근거 파일명 포함)
+├── yolov8_stamp_detection.ipynb   제출용 노트북 (실습 + 분석 + 회고)
+├── src/
+│   ├── train.py           학습
+│   ├── evaluate.py        valid/test 평가, 클래스별 출력
+│   ├── predict.py         추론
+│   └── check_leakage.py   프레임 누수 확인
+├── weights/best.pt
+└── results/valid/         학습 곡선, confusion matrix, F1 곡선, 라벨 분포, 검증 이미지
+```
+
+## 실행
+
+```bash
+pip install ultralytics
+
+# 데이터를 datasets/stamp/ 에 풀어둔 상태에서
+python src/check_leakage.py datasets/stamp          # 누수 확인
+python src/train.py datasets/stamp/data.yaml        # 학습
+python src/evaluate.py weights/best.pt datasets/stamp/data.yaml test   # 테스트 평가
+python src/predict.py weights/best.pt datasets/stamp/test/images       # 추론
+```
+
+## 회고
+
+**Keep**
+
+사전학습 모델을 제조 데이터로 학습시켰을 때 객체를 잘 찾고 위치도 잘 낸다. 사전학습 가중치를 받아서 내 데이터로 학습하고 평가하는 이 흐름은 그대로 쓸 수 있다.
+
+**Problem**
+
+가려진 부분이나 잘린 부분을 탐지하지 못하는 경우가 있다. 테스트 이미지에서 화면 최하단에 위치한 신발을 탐지하지 못했고, 검증 이미지에서도 같은 위치의 신발을 반복해서 놓쳤다.
+
+**Try**
+
+탐지하고 싶은 클래스를 추가하고 그 데이터를 학습시켜 탐지해 보고 싶다. 1부에서 창문을 못 잡았던 것처럼, 목록에 없는 물체를 직접 라벨링해서 넣어보는 것이다.
+
+---
+
 # Peer Review Templete
 - 코더 : 윤세훈
 - 리뷰어 : 리뷰어의 이름을 작성하세요.

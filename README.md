@@ -15,8 +15,12 @@ ComputerVision
 │   ├── .ipynb
 │   └── README.md
 ├── 04_YOLOv8
-│   ├── .ipynb
-│   └── README.md
+│   ├── yolov8_stamp_detection.ipynb
+│   ├── README.md
+│   ├── analysis.md
+│   ├── src/
+│   ├── weights/
+│   └── results/
 ├── 05_EfficientDet
 │   ├── .ipynb
 │   └── README.md
