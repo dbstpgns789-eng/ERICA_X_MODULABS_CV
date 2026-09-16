@@ -1,0 +1,20 @@
+테스트 2: 헤드 20 + 전체 80 epoch (총 100), 나머지 설정 동일. 최종 가중치 efficientdet-d0_87_704.pth
+
+===== valid (28장) =====
+AP @[.50:.95] all    = 0.158
+AP @[.50]     all    = 0.265
+AP @[.75]     all    = 0.185
+AP small / medium / large = 0.054 / 0.340 / 0.496
+AR@100 all = 0.264   small / medium / large = 0.128 / 0.449 / 0.706
+
+===== test (13장) =====
+AP @[.50:.95] all    = 0.093
+AP @[.50]     all    = 0.144
+AP @[.75]     all    = 0.102
+AP small / medium / large = 0.056 / 0.369 / 0.350
+AR@100 all = 0.158   small / medium / large = 0.096 / 0.528 / 0.350
+
+===== 테스트 1 (40 epoch) 대비 =====
+valid mAP50    0.010 → 0.265  (26배)
+valid mAP50-95 0.006 → 0.158
+test  mAP50    0.012 → 0.144  (12배)

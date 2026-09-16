@@ -1,0 +1,9 @@
+project_name: my_car_detect_proj
+train_set: train
+val_set: valid
+num_gpus: 1
+mean: [0.4646, 0.4709, 0.4692]
+std: [0.1642, 0.1633, 0.1625]
+anchors_scales: '[0.54, 1.0, 2.13]'
+anchors_ratios: '[(0.52, 1.0), (0.67, 1.0), (0.82, 1.0)]'
+obj_list: ['cars', 'Bus', 'Car', 'Motorcycle', 'Pickup', 'Truck']

@@ -22,8 +22,12 @@ ComputerVision
 │   ├── weights/
 │   └── results/
 ├── 05_EfficientDet
-│   ├── .ipynb
-│   └── README.md
+│   ├── efficientdet_vehicle_detection.ipynb
+│   ├── README.md
+│   ├── analysis.md
+│   ├── weights/
+│   ├── results/
+│   └── tools/
 ├── 06_Seminar_2
 │   ├── .ipynb
 │   └── README.md
